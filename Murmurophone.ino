@@ -3,7 +3,7 @@
 #include <DFRobotDFPlayerMini.h>
 #include <SoftwareSerial.h>
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
   //#define DEBUG_DEBOUNCE
   #define DEBUG_PRINT(x)     Serial.print (x)
@@ -15,18 +15,42 @@
   #define DEBUG_PRINTLN(x) 
 #endif
 
+
+/* ----- CONFIGURATION ----- */
+
+// System sounds
 #define SOUND_TONE 0001
 #define SOUND_OCCUPIED 0002
 #define SOUND_ROUTING 0003
 #define SOUND_NOT_ASSIGNED 0004
 #define SOUND_RINGING 0005
+#define SOUND_LINE_PICKUP 0006
+#define SOUND_LINE_HANGUP 0007
 
-// Phone
-Phone phone;
+// Play sound delay
+const unsigned int callAnswerDelay = 1 * 1000;
+const unsigned int callHangingUpDelay = 3 * 1000;
+const unsigned int routingDelay = 1 * 1000;
 
 // Phone numbers
 const bool usePhoneNumberPrefix = true;
 const String phoneNumberPrefix = "3590";
+
+// DFPlayer
+const uint8_t dfVolume = 30;
+
+/* ------------------------- */
+
+
+// System sounds indexes
+unsigned short indexSoundTone = -1;
+unsigned short indexSoundOccupied = -1;
+unsigned short indexSoundRouting = -1;
+unsigned short indexSoundNotAssigned = -1;
+unsigned short indexSoundRinging = -1;
+
+// Phone
+Phone phone;
 
 // DFPlayer
 SoftwareSerial softSerial(/*rx =*/11, /*tx =*/10);
@@ -35,15 +59,8 @@ SoftwareSerial softSerial(/*rx =*/11, /*tx =*/10);
 DFRobotDFPlayerMini dfPlayer;
 void printDetail(uint8_t type, int value);
 
-enum dfPlayerSDState 
-{
-    Stopped = 0x0200,
-    Playing = 0x0201
-};
+int indexFileToPlay = -1;
 
-const uint8_t dfVolume = 30;
-
-int indexFileToPlay = 0;
 
 void setup()
 {
@@ -51,7 +68,7 @@ void setup()
   Serial.begin(115200);
 
   Serial.println();
-  Serial.println(F("Scotel S63 Test"));
+  Serial.println(F("--- MURMUROPHONE INITIALIZATION ---"));
 
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
   if (!dfPlayer.begin(FPSerial, true, true)) {  //Use serial to communicate with mp3.
@@ -88,6 +105,16 @@ void setup()
   phone.OnPhoneOccupiedCallback = &onPhoneOccupied;
   phone.OnPhoneNotAssignedCallback = &onPhoneNotAssigned;
   phone.OnPhoneConnectedCallback = &onPhoneConnected;
+
+  // Find system sounds indexes
+  indexSoundTone = FindSoundIndex(SOUND_TONE);
+  indexSoundOccupied = FindSoundIndex(SOUND_OCCUPIED);
+  indexSoundRouting = FindSoundIndex(SOUND_ROUTING);
+  indexSoundNotAssigned = FindSoundIndex(SOUND_NOT_ASSIGNED);
+  indexSoundRinging = FindSoundIndex(SOUND_RINGING);
+
+  Serial.println();
+  Serial.println(F("--- MURMUROPHONE READY ---"));
 }
 
 void onPhonePickedUp()
@@ -98,6 +125,7 @@ void onPhonePickedUp()
 void onPhoneHungUp()
 {
   dfPlayer.pause();
+  indexFileToPlay = -1;
 }
 
 void onPhoneStartDial()
@@ -156,27 +184,18 @@ void onPhoneNumberDialed(const String& _numberDialed)
       fileName = fileName.substring(phoneNumberSize - 4, phoneNumberSize);
     }
 
-    Serial.print("File name: ");
+    Serial.print("  File name: ");
     Serial.println(fileName);
 
-    indexFileToPlay = fileName.toInt();
+    indexFileToPlay = FindSoundIndex(fileName.toInt());
 
-    dfPlayer.volume(0);
-    dfPlayer.playMp3Folder(indexFileToPlay);
+    Serial.print("  File index: ");
+    Serial.println(indexFileToPlay);
 
-    const unsigned long waitEndTime = millis() + 500;
-
-    while (waitEndTime > millis())
+    if (indexFileToPlay == -1)
     {
-        if (dfPlayer.available() && dfPlayer.readType() == DFPlayerError && dfPlayer.read() == FileMismatch)
-        {
-          validNumber = false;
-          break;
-        }
+      validNumber = false;
     }
-
-    dfPlayer.pause();
-    dfPlayer.volume(dfVolume);
   }
 
   if (validNumber)
@@ -188,37 +207,113 @@ void onPhoneNumberDialed(const String& _numberDialed)
   {
     delay(routingDelay);
     phone.SwitchState(PhoneState_NotAssigned);
-    indexFileToPlay = 0;
+    indexFileToPlay = -1;
   }
 }
 
 void onPhoneConnected()
 {
-  if (indexFileToPlay == 0)
+  if (indexFileToPlay == -1)
   {
     Serial.println("Phone connected but invalid index file");
     return;
   }
 
-  dfPlayer.playMp3Folder(indexFileToPlay);
+  dfPlayer.playMp3Folder(SOUND_LINE_PICKUP);
 
-  indexFileToPlay = 0;
+  delay(callAnswerDelay);
+
+  dfPlayer.play(indexFileToPlay);
 }
 
 void loop()
 {
   phone.Update();
 
-  if (phone.GetState() == PhoneState_Connected && dfPlayer.readType() == DFPlayerPlayFinished)
-  {
-    delay(callHangingUpDelay);
-    phone.SwitchState(PhoneState_Occupied);
-  }
-  
   if (dfPlayer.available()) 
   {
+    if (dfPlayer.readType() == DFPlayerPlayFinished)
+    {
+      switch (phone.GetState())
+      {
+      case PhoneState_PickedUp:
+        if (dfPlayer.read() == indexSoundTone)
+        {
+          dfPlayer.playMp3Folder(SOUND_TONE);
+          break;
+        }
+
+      case PhoneState_Routing:
+        if (dfPlayer.read() == indexSoundRouting)
+        {
+          dfPlayer.playMp3Folder(SOUND_ROUTING);
+          break;
+        }
+
+      case PhoneState_Ringing:
+        if (dfPlayer.read() == indexSoundRinging)
+        {
+          dfPlayer.playMp3Folder(SOUND_RINGING);
+          break;
+        }
+
+      case PhoneState_Occupied:
+        if (dfPlayer.read() == indexSoundOccupied)
+        {
+          dfPlayer.playMp3Folder(SOUND_OCCUPIED);
+          break;
+        }
+
+      case PhoneState_NotAssigned:
+        if (dfPlayer.read() == indexSoundNotAssigned)
+        {
+          dfPlayer.playMp3Folder(SOUND_NOT_ASSIGNED);
+          break;
+        }
+
+      case PhoneState_Connected:
+        if (dfPlayer.read() == indexFileToPlay)
+        {
+          indexFileToPlay = -1;
+          dfPlayer.playMp3Folder(SOUND_LINE_HANGUP);
+          delay(callHangingUpDelay);
+          phone.SwitchState(PhoneState_Occupied);
+        }
+        break;
+
+      default:
+        break;
+      }
+    }
+
     printDetail(dfPlayer.readType(), dfPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
   }
+}
+
+int FindSoundIndex(int _soundName)
+{
+  dfPlayer.volume(0);
+  dfPlayer.playMp3Folder(_soundName);
+
+  const unsigned long waitEndTime = millis() + 500;
+
+  bool validNumber = true;
+
+  while (waitEndTime > millis())
+  {
+      if (dfPlayer.available() && dfPlayer.readType() == DFPlayerError && dfPlayer.read() == FileMismatch)
+      {
+        validNumber = false;
+        break;
+      }
+  }
+
+  int index = dfPlayer.readCurrentFileNumber();
+
+  dfPlayer.pause();
+  dfPlayer.volume(dfVolume);
+
+  return validNumber ? index : -1;
 }
 
 void printDetail(uint8_t type, int value){

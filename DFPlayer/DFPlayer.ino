@@ -23,7 +23,7 @@ void setup()
   Serial.begin(115200);
 
   Serial.println();
-  Serial.println(F("DFRobot DFPlayer Mini Demo"));
+  Serial.println(F("DFRobot DFPlayer Mini Playground"));
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
   
   if (!myDFPlayer.begin(FPSerial, /*isACK = */true, /*doReset = */true)) {  //Use serial to communicate with mp3.
@@ -123,93 +123,67 @@ void loop()
 
   if (incomingString.length() > 0)
   {
-    Serial.print("Playing: ");
-    Serial.println(incomingString.toInt());
-    myDFPlayer.volume(0);
-    myDFPlayer.playMp3Folder(incomingString.toInt());
-
-    const unsigned long endTime = millis() + 500;
-
-    bool validFile = true;
-
-    while (endTime > millis())
+    if (incomingString.toInt() == 8888)
     {
-        if (myDFPlayer.available() && myDFPlayer.readType() == DFPlayerError && myDFPlayer.read() == FileMismatch)
-        {
-          validFile = false;
-          break;
-        }
+      Serial.println("Enabling loop");
+      myDFPlayer.enableLoop();
     }
-
-    myDFPlayer.pause();
-    myDFPlayer.volume(volume);
-
-    if (validFile)
+    else if (incomingString.toInt() == 9999)
     {
-      Serial.println("Valid file");
-      delay(1000);
-      Serial.print(".");
-      delay(1000);
-      Serial.print(".");
-      delay(1000);
-      Serial.print(".");
-      delay(1000);
-      Serial.print(".");
-      delay(1000);
-      Serial.println(".");
-      Serial.println("Playing");
-      myDFPlayer.playMp3Folder(incomingString.toInt());
+      Serial.println("Disabling loop");
+      myDFPlayer.disableLoop();
     }
     else
     {
-      Serial.println("Invalid file");
-    }
 
-    //Serial.println("Looking for file...");
-    //delay(2000);
-    
-
-    /*if (myDFPlayer.readType() == DFPlayerError && myDFPlayer.read() == FileMismatch )
-    {
-      Serial.print("No such audio file: ");
-      Serial.println(incomingString.toInt());
-    }
-    else
-    {
       Serial.print("Playing: ");
       Serial.println(incomingString.toInt());
-      myDFPlayer.volume(volume);
+      myDFPlayer.volume(0);
       myDFPlayer.playMp3Folder(incomingString.toInt());
-    }*/
+
+      const unsigned long endTime = millis() + 500;
+
+      bool validFile = true;
+
+      while (endTime > millis())
+      {
+          if (myDFPlayer.available() && myDFPlayer.readType() == DFPlayerError && myDFPlayer.read() == FileMismatch)
+          {
+            validFile = false;
+            break;
+          }
+      }
+
+      myDFPlayer.pause();
+      myDFPlayer.volume(volume);
+
+      if (validFile)
+      {
+        Serial.println("Valid file");
+        delay(250);
+        Serial.print(".");
+        delay(250);
+        Serial.print(".");
+        delay(250);
+        Serial.print(".");
+        delay(250);
+        Serial.print(".");
+        delay(250);
+        Serial.println(".");
+        Serial.println("Playing");
+        myDFPlayer.playMp3Folder(incomingString.toInt());
+      }
+      else
+      {
+        Serial.println("Invalid file");
+      }
+    }
   }
-
-  /*if (myDFPlayer.available()) 
-  {
-    int currentFile = myDFPlayer.readCurrentFileNumber();
-    int state = myDFPlayer.readState();
-
-    if (currentFile != 0)
-    {
-      Serial.println(currentFile);
-    }
-
-    if (state != 512)
-    {
-      Serial.println(state);
-    }
-
-    printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
-  } */
-
-  /*if (millis() - timer > 3000) {
-    timer = millis();
-    myDFPlayer.next();  //Play next mp3 every 3 second.
-  }*/
   
-  /*if (myDFPlayer.available()) 
+  if (myDFPlayer.available()) 
   {
     printDetail(myDFPlayer.readType(), myDFPlayer.read()); //Print the detail message from DFPlayer to handle different errors and states.
-  }*/
+  }
 }
 
 void printDetail(uint8_t type, int value){

@@ -114,7 +114,7 @@ void Phone::OnEnter(const PhoneState _previousState)
       break;
 
     case PhoneState_Connected:
-      m_timer = millis() + callAnswerDelay;
+      OnPhoneConnectedCallback();
       break;
 
     default:
@@ -236,11 +236,6 @@ void Phone::Update()
       if (!s_isPickedUp)
       {
         SwitchState(PhoneState_HungUp);
-      }
-      else if (m_timer != 0 && millis() >= m_timer)
-      {
-        OnPhoneConnectedCallback();
-        m_timer = 0;
       }
       break;
 

@@ -1,7 +1,7 @@
 #ifndef Phone_h
 #define Phone_h
 
-#define DEBUG_PHONE
+//#define DEBUG_PHONE
 #ifdef DEBUG_PHONE
   //#define DEBUG_PHONE_DEBOUNCE
   #define DEBUG_PHONE_PRINT(x)     Serial.print (x)
@@ -13,26 +13,31 @@
   #define DEBUG_PHONE_PRINTLN(x) 
 #endif
 
+
+/* ----- CONFIGURATION ----- */
+
 // Pin connexions
 const unsigned int pickUpSwitch = 5;     //S63 11
 const unsigned int dialPulsesSwitch = 2; //S63 I
 const unsigned int dialingSwitch = 4;    //S63 III 
 
+// Phone numbers
 const unsigned short phoneNumberSize = 8;
 const unsigned short specialPhoneNumberSize = 2;
-const unsigned int maxDialingTime = 10 * 1000;
 const String specialPhoneNumberPrefix = "1";
 
+// Timing
 const unsigned int maxToneTime = 15 * 1000;
+const unsigned int maxDialingTime = 10 * 1000;
 const unsigned int routingTime = 2 * 1000;
 const unsigned int ringingTime = 7 * 1000;
-const unsigned int routingDelay = 1 * 1000;
-const unsigned int callAnswerDelay = 2 * 1000;
-const unsigned int callHangingUpDelay = 4 * 1000;
 
 // Debounce
 const unsigned debounceDialTime = 60;
 const unsigned debouncePickUpTime = 10;
+
+/* ------------------------- */
+
 
 enum PhoneState 
 {
@@ -46,6 +51,7 @@ enum PhoneState
     PhoneState_NotAssigned,
     PhoneState_Connected
 };
+
 
 class Phone 
 {
