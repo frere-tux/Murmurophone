@@ -240,6 +240,7 @@ void Phone::Update()
       else if (m_timer != 0 && millis() >= m_timer)
       {
         OnPhoneConnectedCallback();
+        m_timer = 0;
       }
       break;
 
@@ -261,10 +262,10 @@ void Phone::OnExit(const PhoneState _newState)
       break;
 
     case PhoneState_PickedUp:
-
       break;
 
     case PhoneState_Dialing:
+
       break;
 
     case PhoneState_Routing:

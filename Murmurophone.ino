@@ -85,6 +85,8 @@ void setup()
   phone.OnPhoneRoutingCallback = &onPhoneRouting;
   phone.OnPhoneRingingStartCallback = &onPhoneRingingStart;
   phone.OnPhoneRingingStopCallback = &onPhoneRingingStop;
+  phone.OnPhoneOccupiedCallback = &onPhoneOccupied;
+  phone.OnPhoneNotAssignedCallback = &onPhoneNotAssigned;
   phone.OnPhoneConnectedCallback = &onPhoneConnected;
 }
 
@@ -179,10 +181,12 @@ void onPhoneNumberDialed(const String& _numberDialed)
 
   if (validNumber)
   {
+    delay(routingDelay);
     phone.SwitchState(PhoneState_Routing);
   }
   else
   {
+    delay(routingDelay);
     phone.SwitchState(PhoneState_NotAssigned);
     indexFileToPlay = 0;
   }

@@ -24,10 +24,11 @@ const unsigned int maxDialingTime = 10 * 1000;
 const String specialPhoneNumberPrefix = "1";
 
 const unsigned int maxToneTime = 15 * 1000;
-const unsigned int routingTime = 3 * 1000;
-const unsigned int ringingTime = 5 * 1000;
-const unsigned int callAnswerDelay = 1 * 1000;
-const unsigned int callHangingUpDelay = 3 * 1000;
+const unsigned int routingTime = 2 * 1000;
+const unsigned int ringingTime = 7 * 1000;
+const unsigned int routingDelay = 1 * 1000;
+const unsigned int callAnswerDelay = 2 * 1000;
+const unsigned int callHangingUpDelay = 4 * 1000;
 
 // Debounce
 const unsigned debounceDialTime = 60;
